@@ -10,6 +10,7 @@ def load_base_data():
 base_df = load_base_data()
 
 # --- Simulation Engine ---
+# --- Simulation Engine ---
 def simulate_population_fixed(
     base_df,
     migration_scenario="current",
@@ -37,33 +38,21 @@ def simulate_population_fixed(
         projections["w_maschi_stranieri"] = projections[f"maschi_stranieri_{year}"] / total_stranieri if total_stranieri != 0 else 0
         projections["w_femmine_stranieri"] = projections[f"femmine_stranieri_{year}"] / total_stranieri if total_stranieri != 0 else 0
 
-        if migration_scenario != "no_migration":
+        if migration_scenario == "current":
             total_outmigration = projections[f"outmigration_{year}"].iloc[0]
             total_immigration = projections[f"immigration_{year}"].iloc[0]
-        else:
+        elif migration_scenario == "no_migration":
             total_outmigration = projections[f"outmigration_{year}"].iloc[0]
             total_immigration = 0
+        elif migration_scenario == "boosted":
+            total_outmigration = projections[f"outmigration_{year}"].iloc[0]
+            total_immigration = projections[f"immigration_{year}"].iloc[0]
 
-        # Outmigration Italians
         projections[f"maschi_italiani_{year}"] -= total_outmigration * projections["w_maschi_italiani"]
         projections[f"femmine_italiani_{year}"] -= total_outmigration * projections["w_femmine_italiani"]
-
-        # Save regular immigrants separately
-        new_maschi_immigrants = total_immigration * projections["w_maschi_stranieri"]
-        new_femmine_immigrants = total_immigration * projections["w_femmine_stranieri"]
-        projections[f"maschi_stranieri_{year}"] -= new_maschi_immigrants
-        projections[f"femmine_stranieri_{year}"] -= new_femmine_immigrants
-
-        # Apply survival to residents
-        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
-            s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
-            projections[f"{group}_{year}"] *= projections[s_col]
-
-        # Re-add regular immigrants (alive)
-        projections[f"maschi_stranieri_{year}"] += new_maschi_immigrants
-        projections[f"femmine_stranieri_{year}"] += new_femmine_immigrants
-
-        # Boosted immigrants (only after survival)
+        projections[f"maschi_stranieri_{year}"] += total_immigration * projections["w_maschi_stranieri"]
+        projections[f"femmine_stranieri_{year}"] += total_immigration * projections["w_femmine_stranieri"]
+        
         if migration_scenario == "boosted" and immigration_boost > 0:
             if boost_start_year and boost_end_year:
                 if boost_start_year <= year <= boost_end_year:
@@ -76,17 +65,31 @@ def simulate_population_fixed(
                         projections.loc[projections["età"] == age, f"maschi_stranieri_{year}"] += male_boost_per_age
                         projections.loc[projections["età"] == age, f"femmine_stranieri_{year}"] += female_boost_per_age
 
-                    if bring_children:
-                        total_children = immigration_boost / 2
-                        male_children = total_children * 0.5
-                        female_children = total_children * 0.5
-                        male_children_per_age = male_children / 18
-                        female_children_per_age = female_children / 18
-                        for age in range(0, 18):
-                            projections.loc[projections["età"] == age, f"maschi_stranieri_{year}"] += male_children_per_age
-                            projections.loc[projections["età"] == age, f"femmine_stranieri_{year}"] += female_children_per_age
+            if bring_children:
+                total_children = immigration_boost / 2
+                male_children = total_children * 0.5
+                female_children = total_children * 0.5
+                male_children_per_age = male_children / 18
+                female_children_per_age = female_children / 18
+                for age in range(0, 18):
+                    projections.loc[projections["età"] == age, f"maschi_stranieri_{year}"] += male_children_per_age
+                    projections.loc[projections["età"] == age, f"femmine_stranieri_{year}"] += female_children_per_age
 
-        # Now compute births
+        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
+            s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
+            projections[f"{group}_{year}"] *= projections[s_col]
+        
+        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
+            projections.loc[projections.index[1:], f"{group}_{next_year}"] = projections.loc[projections.index[:-1], f"{group}_{year}"].values
+
+        if next_year == 2075:
+            projections.loc[projections["età"] == 100, f"{group}_{next_year}"] = (
+                projections.loc[projections["età"] == 99, f"{group}_{year}"].values[0] * projections[s_col].iloc[99] +
+                projections.loc[projections["età"] == 100, f"{group}_{year}"].values[0] * projections[s_col].iloc[100] * projections[s_col].iloc[100]
+            )
+        else:
+            projections.loc[projections["età"] == 100, f"{group}_{next_year}"] += projections.loc[projections["età"] == 100, f"{group}_{year}"].values
+
         births_italiani = (projections[f"femmine_italiani_{year}"] * (projections["fertility_italiani"] / 1000)).sum()
         births_stranieri = (projections[f"femmine_stranieri_{year}"] * (projections["fertility_stranieri"] / 1000)).sum()
 
@@ -95,31 +98,15 @@ def simulate_population_fixed(
         newborn_males_stranieri = int(round(births_stranieri * sex_ratio_at_birth))
         newborn_females_stranieri = int(round(births_stranieri * (1 - sex_ratio_at_birth)))
 
-        births_per_year[next_year] = births_italiani + births_stranieri
-
-        # Then aging
-        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
-            projections.loc[projections.index[1:], f"{group}_{next_year}"] = projections.loc[projections.index[:-1], f"{group}_{year}"].values
-
-        # 2075 special fix (only for year 2075)
-        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
-            if next_year == 2075:
-                s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
-                projections.loc[projections["età"] == 100, f"{group}_{next_year}"] = (
-                    projections.loc[projections["età"] == 99, f"{group}_{year}"].values[0] * projections[s_col].iloc[99] +
-                    projections.loc[projections["età"] == 100, f"{group}_{year}"].values[0] * projections[s_col].iloc[100] * projections[s_col].iloc[100]
-                )
-            else:
-                projections.loc[projections["età"] == 100, f"{group}_{next_year}"] += projections.loc[projections["età"] == 100, f"{group}_{year}"].values
-
-        # Assign newborns to age 0
         projections.loc[projections["età"] == 0, f"maschi_italiani_{next_year}"] = newborn_males_italiani
         projections.loc[projections["età"] == 0, f"femmine_italiani_{next_year}"] = newborn_females_italiani
         projections.loc[projections["età"] == 0, f"maschi_stranieri_{next_year}"] = newborn_males_stranieri
         projections.loc[projections["età"] == 0, f"femmine_stranieri_{next_year}"] = newborn_females_stranieri
 
-        # Round newborns nicely
-        for col in [f"maschi_italiani_{next_year}", f"femmine_italiani_{next_year}", f"maschi_stranieri_{next_year}", f"femmine_stranieri_{next_year}"]:
+        births_per_year[year] = births_italiani + births_stranieri
+        
+        for col in [f"maschi_italiani_{next_year}", f"femmine_italiani_{next_year}",
+                    f"maschi_stranieri_{next_year}", f"femmine_stranieri_{next_year}"]:
             projections[col] = projections[col].round().astype(int)
 
     births_df = pd.DataFrame(list(births_per_year.items()), columns=["year", "total_births"])
