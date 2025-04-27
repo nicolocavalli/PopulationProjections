@@ -2,6 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
+# --- Load Base Data ---
+@st.cache_data
+def load_base_data():
+    return pd.read_csv("base_file_new.csv")
+
+base_df = load_base_data()
 def simulate_population_fixed(
     base_df,
     immigration_boost=0,
