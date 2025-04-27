@@ -122,7 +122,7 @@ pop_boosted = [b + p for b, p in zip(pop_baseline, pop_boost)]
    # for y in birth_years
 #]
 
-f#ig3, ax3 = plt.subplots(figsize=(10, 5))
+#fig3, ax3 = plt.subplots(figsize=(10, 5))
 #ax3.plot(birth_years, births_baseline, label="Baseline", linestyle="--", color="black")
 #ax3.plot(birth_years, births_boosted, label="With Immigration Boost", color="blue", linewidth=2)
 #ax3.axvspan(boost_start, boost_end, color="blue", alpha=0.1, label="Boost Period")
