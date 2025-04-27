@@ -1,5 +1,3 @@
-# --- Full Streamlit App for Population Projections (Self-Contained) ---
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -113,7 +111,6 @@ births_df = pd.DataFrame(list(births_per_year.items()), columns=["year", "total_
 return projections, births_df
 
 # --- Helper Functions ---
-
 def total_population(projections):
 years = list(range(2023, 2076))
 totals = []
@@ -126,7 +123,6 @@ projections[f"femmine_stranieri_{year}"].sum()
 )
 totals.append(total)
 return totals
-
 
 def old_age_dependency(projections):
 years = list(range(2023, 2076))
@@ -143,7 +139,6 @@ projections[(projections["età"] >= 15) & (projections["età"] <= 64)][f"femmine
 ratio = (pop_65plus / pop_working) * 100 if pop_working > 0 else 0
 oadr.append(ratio)
 return oadr
-
 
 def population_pyramid(df, year):
 male = df[f"maschi_italiani_{year}"] + df[f"maschi_stranieri_{year}"]
@@ -163,54 +158,26 @@ bring_children = st.sidebar.checkbox("Immigrants Bring Children", value=False)
 st.title("Population Projection Simulator")
 
 # --- Run Simulations ---
-
 # Baseline (current migration)
 projections_baseline, births_baseline = simulate_population_fixed(base_df, migration_scenario="current")
 
 # Boosted Scenario
 projections_boosted, births_boosted = simulate_population_fixed(
-    base_df,
-    migration_scenario="boosted",
-    immigration_boost=immigration_boost,
-    boost_start_year=boost_start_year,
-    boost_end_year=boost_end_year,
-    boost_min_age=boost_min_age,
-    boost_max_age=boost_max_age,
-    bring_children=bring_children
+base_df,
+migration_scenario="boosted",
+immigration_boost=immigration_boost,
+boost_start_year=boost_start_year,
+boost_end_year=boost_end_year,
+boost_min_age=boost_min_age,
+boost_max_age=boost_max_age,
+bring_children=bring_children
 )
 
 # --- Helper Calculations ---
 years = list(range(2023, 2076))
 
-def total_population(projections):
-    totals = []
-    for year in years:
-        total = (
-            projections[f"maschi_italiani_{year}"].sum() +
-            projections[f"femmine_italiani_{year}"].sum() +
-            projections[f"maschi_stranieri_{year}"].sum() +
-            projections[f"femmine_stranieri_{year}"].sum()
-        )
-        totals.append(total)
-    return totals
-
 pop_total_baseline = total_population(projections_baseline)
 pop_total_boosted = total_population(projections_boosted)
-
-def old_age_dependency(projections):
-    oadr = []
-    for year in years:
-        pop_65plus = projections[(projections["età"] >= 65)][f"maschi_italiani_{year}"].sum() + \
-                     projections[(projections["età"] >= 65)][f"femmine_italiani_{year}"].sum() + \
-                     projections[(projections["età"] >= 65)][f"maschi_stranieri_{year}"].sum() + \
-                     projections[(projections["età"] >= 65)][f"femmine_stranieri_{year}"].sum()
-        pop_working = projections[(projections["età"] >= 15) & (projections["età"] <= 64)][f"maschi_italiani_{year}"].sum() + \
-                      projections[(projections["età"] >= 15) & (projections["età"] <= 64)][f"femmine_italiani_{year}"].sum() + \
-                      projections[(projections["età"] >= 15) & (projections["età"] <= 64)][f"maschi_stranieri_{year}"].sum() + \
-                      projections[(projections["età"] >= 15) & (projections["età"] <= 64)][f"femmine_stranieri_{year}"].sum()
-        ratio = (pop_65plus / pop_working) * 100 if pop_working > 0 else 0
-        oadr.append(ratio)
-    return oadr
 
 oadr_baseline = old_age_dependency(projections_baseline)
 oadr_boosted = old_age_dependency(projections_boosted)
@@ -241,17 +208,12 @@ ax2.grid(True)
 plt.tight_layout()
 st.pyplot(fig2)
 
-# --- Plot 3: Population Pyramid (2075) ---
-def population_pyramid(df, year):
-    male = df[f"maschi_italiani_{year}"] + df[f"maschi_stranieri_{year}"]
-    female = df[f"femmine_italiani_{year}"] + df[f"femmine_stranieri_{year}"]
-    return male.values, female.values
-
+# --- Plot 3: Population Pyramid in 2075 ---
+st.subheader("Population Pyramid in 2075")
 ages = projections_baseline["età"].values
 males_baseline, females_baseline = population_pyramid(projections_baseline, 2075)
 males_boosted, females_boosted = population_pyramid(projections_boosted, 2075)
 
-st.subheader("Population Pyramid in 2075")
 fig3, ax3 = plt.subplots(figsize=(8, 6))
 ax3.barh(ages, -males_baseline, color="lightgray", label="Baseline Males")
 ax3.barh(ages, females_baseline, color="gray", label="Baseline Females")
@@ -264,7 +226,7 @@ ax3.grid(True)
 plt.tight_layout()
 st.pyplot(fig3)
 
-# --- Plot 4: Old-Age Dependency Ratio ---
+# --- Plot 4: Old-Age Dependency Ratio (OADR) Over Time ---
 st.subheader("Old-Age Dependency Ratio (OADR) Over Time")
 fig4, ax4 = plt.subplots(figsize=(10, 6))
 ax4.plot(years, oadr_baseline, label="Baseline", linestyle="--", color="black")
@@ -276,6 +238,7 @@ ax4.grid(True)
 plt.tight_layout()
 st.pyplot(fig4)
 
-# --- End of App ---
+# --- End of Streamlit App ---
 
+# (Nothing else is needed — Streamlit automatically manages session state.)
 
