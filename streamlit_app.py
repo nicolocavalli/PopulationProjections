@@ -84,7 +84,7 @@ def simulate_population_fixed(
         if next_year == 2075:
             projections.loc[projections["età"] == 100, f"{group}_{next_year}"] = (
                 projections.loc[projections["età"] == 99, f"{group}_{year}"].values[0] * projections[s_col].iloc[99] +
-                projections.loc[projections["età"] == 100, f"{group}_{year}"].values[0] * projections[s_col].iloc[100] * projections[s_col].iloc[100]
+                projections.loc[projections["età"] == 100, f"{group}_{year}"].values[0] * projections[s_col].iloc[100]
             )
         else:
             projections.loc[projections["età"] == 100, f"{group}_{next_year}"] += projections.loc[projections["età"] == 100, f"{group}_{year}"].values
