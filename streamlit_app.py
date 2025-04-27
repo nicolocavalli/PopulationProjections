@@ -16,8 +16,8 @@ def simulate_population_fixed(
     immigration_boost=0,
     boost_start_year=None,
     boost_end_year=None,
-    boost_min_age=18,
-    boost_max_age=29,
+    boost_min_age=0,
+    boost_max_age=100,
     bring_children=False
 ):
     projections = base_df.copy()
