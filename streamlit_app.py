@@ -102,6 +102,8 @@ def simulate_population_fixed(
         projections.loc[projections["età"] == 0, f"maschi_stranieri_{next_year}"] = newborn_males_stranieri
         projections.loc[projections["età"] == 0, f"femmine_stranieri_{next_year}"] = newborn_females_stranieri
 
+        births_per_year[year] = births_italiani + births_stranieri
+
         for col in [f"maschi_italiani_{next_year}", f"femmine_italiani_{next_year}",
                     f"maschi_stranieri_{next_year}", f"femmine_stranieri_{next_year}"]:
             projections[col] = projections[col].round().astype(int)
