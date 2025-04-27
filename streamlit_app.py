@@ -10,7 +10,6 @@ def load_base_data():
 base_df = load_base_data()
 
 # --- Simulation Engine ---
-# --- Simulation Engine ---
 def simulate_population_fixed(
     base_df,
     migration_scenario="current",
