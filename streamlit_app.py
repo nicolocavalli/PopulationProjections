@@ -110,7 +110,7 @@ pop_boosted = [b + p for b, p in zip(pop_baseline, pop_boost)]
 # --- Plot: Total Births Over Time ---
 st.subheader("Total Births Per Year: Baseline vs Boosted Scenario")
 
-birth_years = list(range(2024, 2075))
+birth_years = list(range(2025, 2075))
 births_baseline = [
     boost_df[f"births_italiani_{y}"].sum() + boost_df[f"births_stranieri_{y}"].sum()
     for y in birth_years
