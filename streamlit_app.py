@@ -1,116 +1,102 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import numpy as np
 
-# --- Load Base Data ---
-@st.cache_data
-def load_base_data():
-    return pd.read_csv("base_file_new.csv")
-
-base_df = load_base_data()
-
-# --- Simulation Engine ---
-def simulate_population_fixed(
+def simulate_population_fixed_corrected(
     base_df,
-    migration_scenario="current",
     immigration_boost=0,
     boost_start_year=None,
     boost_end_year=None,
     boost_min_age=18,
-    boost_max_age=49,
-    bring_children=False
+    boost_max_age=29,
 ):
-    projections = base_df.copy()
-    years = list(range(2023, 2076))
+    projections_baseline = base_df.copy()
+    projections_boosted = base_df.copy()
+
+    start_year = 2023
+    end_year = 2075
+    years = list(range(start_year, end_year + 1))
+
     sex_ratio_at_birth = 0.512
 
-    births_per_year = {}
+    # Initialize storage
+    for df in [projections_baseline, projections_boosted]:
+        for year in years[1:]:
+            for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
+                df[f"{group}_{year}"] = 0
 
+    # Simulate year by year
     for year in years[:-1]:
         next_year = year + 1
 
-        total_italiani = (projections[f"maschi_italiani_{year}"] + projections[f"femmine_italiani_{year}"]).sum()
-        total_stranieri = (projections[f"maschi_stranieri_{year}"] + projections[f"femmine_stranieri_{year}"]).sum()
+        for df, scenario in [(projections_baseline, "baseline"), (projections_boosted, "boosted")]:
+            
+            # 1. Outmigration (Italians only)
+            total_outmigration = df[f"outmigration_{year}"].iloc[0]
+            total_italiani = (df[f"maschi_italiani_{year}"] + df[f"femmine_italiani_{year}"]).sum()
 
-        projections["w_maschi_italiani"] = projections[f"maschi_italiani_{year}"] / total_italiani if total_italiani != 0 else 0
-        projections["w_femmine_italiani"] = projections[f"femmine_italiani_{year}"] / total_italiani if total_italiani != 0 else 0
-        projections["w_maschi_stranieri"] = projections[f"maschi_stranieri_{year}"] / total_stranieri if total_stranieri != 0 else 0
-        projections["w_femmine_stranieri"] = projections[f"femmine_stranieri_{year}"] / total_stranieri if total_stranieri != 0 else 0
+            if total_italiani > 0:
+                df["w_maschi_italiani"] = df[f"maschi_italiani_{year}"] / total_italiani
+                df["w_femmine_italiani"] = df[f"femmine_italiani_{year}"] / total_italiani
+            else:
+                df["w_maschi_italiani"] = 0
+                df["w_femmine_italiani"] = 0
 
-        if migration_scenario == "current":
-            total_outmigration = projections[f"outmigration_{year}"].iloc[0]
-            total_immigration = projections[f"immigration_{year}"].iloc[0]
-        elif migration_scenario == "no_migration":
-            total_outmigration = projections[f"outmigration_{year}"].iloc[0]
-            total_immigration = 0
-        elif migration_scenario == "boosted":
-            total_outmigration = projections[f"outmigration_{year}"].iloc[0]
-            total_immigration = projections[f"immigration_{year}"].iloc[0]
+            df[f"maschi_italiani_{year}"] -= total_outmigration * df["w_maschi_italiani"]
+            df[f"femmine_italiani_{year}"] -= total_outmigration * df["w_femmine_italiani"]
 
-        projections[f"maschi_italiani_{year}"] -= total_outmigration * projections["w_maschi_italiani"]
-        projections[f"femmine_italiani_{year}"] -= total_outmigration * projections["w_femmine_italiani"]
-        projections[f"maschi_stranieri_{year}"] += total_immigration * projections["w_maschi_stranieri"]
-        projections[f"femmine_stranieri_{year}"] += total_immigration * projections["w_femmine_stranieri"]
+            # 2. Regular Immigration (foreigners only)
+            total_immigration = df[f"immigration_{year}"].iloc[0]
+            total_stranieri = (df[f"maschi_stranieri_{year}"] + df[f"femmine_stranieri_{year}"]).sum()
 
-        if migration_scenario == "boosted" and immigration_boost > 0:
-            if boost_start_year and boost_end_year:
+            if total_stranieri > 0:
+                df["w_maschi_stranieri"] = df[f"maschi_stranieri_{year}"] / total_stranieri
+                df["w_femmine_stranieri"] = df[f"femmine_stranieri_{year}"] / total_stranieri
+            else:
+                df["w_maschi_stranieri"] = 0
+                df["w_femmine_stranieri"] = 0
+
+            df[f"maschi_stranieri_{year}"] += total_immigration * df["w_maschi_stranieri"]
+            df[f"femmine_stranieri_{year}"] += total_immigration * df["w_femmine_stranieri"]
+
+            # 3. Apply Survival (existing population)
+            for group, survival in zip(["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"],
+                                       ["survival_maschi", "survival_femmine", "survival_maschi", "survival_femmine"]):
+                df[f"{group}_{year}"] *= df[survival]
+
+            # 4. Apply Boost (only after survival)
+            if scenario == "boosted" and boost_start_year and boost_end_year:
                 if boost_start_year <= year <= boost_end_year:
                     male_boost = immigration_boost * 0.5
                     female_boost = immigration_boost * 0.5
-                    num_ages_adult = boost_max_age - boost_min_age + 1
-                    male_boost_per_age = male_boost / num_ages_adult
-                    female_boost_per_age = female_boost / num_ages_adult
+                    num_ages = boost_max_age - boost_min_age + 1
+                    male_boost_per_age = male_boost / num_ages
+                    female_boost_per_age = female_boost / num_ages
+
                     for age in range(boost_min_age, boost_max_age + 1):
-                        projections.loc[projections["età"] == age, f"maschi_stranieri_{year}"] += male_boost_per_age
-                        projections.loc[projections["età"] == age, f"femmine_stranieri_{year}"] += female_boost_per_age
+                        df.loc[df["età"] == age, f"maschi_stranieri_{year}"] += male_boost_per_age
+                        df.loc[df["età"] == age, f"femmine_stranieri_{year}"] += female_boost_per_age
 
-            if bring_children:
-                total_children = immigration_boost / 2
-                male_children = total_children * 0.5
-                female_children = total_children * 0.5
-                male_children_per_age = male_children / 18
-                female_children_per_age = female_children / 18
-                for age in range(0, 18):
-                    projections.loc[projections["età"] == age, f"maschi_stranieri_{year}"] += male_children_per_age
-                    projections.loc[projections["età"] == age, f"femmine_stranieri_{year}"] += female_children_per_age
+            # 5. Aging: Shift everyone
+            for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
+                df.loc[df.index[1:], f"{group}_{next_year}"] = df.loc[df.index[:-1], f"{group}_{year}"].values
+                df.loc[df["età"] == 100, f"{group}_{next_year}"] += df.loc[df["età"] == 100, f"{group}_{year}"].values
 
-        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
-            s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
-            projections[f"{group}_{year}"] *= projections[s_col]
+            # 6. Births
+            births_italiani = (df[f"femmine_italiani_{year}"] * (df["fertility_italiani"] / 1000)).sum()
+            births_stranieri = (df[f"femmine_stranieri_{year}"] * (df["fertility_stranieri"] / 1000)).sum()
 
-        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
-            projections.loc[projections.index[1:], f"{group}_{next_year}"] = projections.loc[projections.index[:-1], f"{group}_{year}"].values
+            newborn_males_italiani = int(round(births_italiani * sex_ratio_at_birth))
+            newborn_females_italiani = int(round(births_italiani * (1 - sex_ratio_at_birth)))
+            newborn_males_stranieri = int(round(births_stranieri * sex_ratio_at_birth))
+            newborn_females_stranieri = int(round(births_stranieri * (1 - sex_ratio_at_birth)))
 
-        if next_year == 2075:
-            projections.loc[projections["età"] == 100, f"{group}_{next_year}"] = (
-                projections.loc[projections["età"] == 99, f"{group}_{year}"].values[0] * projections[s_col].iloc[99] +
-                projections.loc[projections["età"] == 100, f"{group}_{year}"].values[0] * projections[s_col].iloc[100]
-            )
-        else:
-            projections.loc[projections["età"] == 100, f"{group}_{next_year}"] += projections.loc[projections["età"] == 100, f"{group}_{year}"].values
+            df.loc[df["età"] == 0, f"maschi_italiani_{next_year}"] = newborn_males_italiani
+            df.loc[df["età"] == 0, f"femmine_italiani_{next_year}"] = newborn_females_italiani
+            df.loc[df["età"] == 0, f"maschi_stranieri_{next_year}"] = newborn_males_stranieri
+            df.loc[df["età"] == 0, f"femmine_stranieri_{next_year}"] = newborn_females_stranieri
 
-        births_italiani = (projections[f"femmine_italiani_{year}"] * (projections["fertility_italiani"] / 1000)).sum()
-        births_stranieri = (projections[f"femmine_stranieri_{year}"] * (projections["fertility_stranieri"] / 1000)).sum()
-
-        newborn_males_italiani = int(round(births_italiani * sex_ratio_at_birth))
-        newborn_females_italiani = int(round(births_italiani * (1 - sex_ratio_at_birth)))
-        newborn_males_stranieri = int(round(births_stranieri * sex_ratio_at_birth))
-        newborn_females_stranieri = int(round(births_stranieri * (1 - sex_ratio_at_birth)))
-
-        projections.loc[projections["età"] == 0, f"maschi_italiani_{next_year}"] = newborn_males_italiani
-        projections.loc[projections["età"] == 0, f"femmine_italiani_{next_year}"] = newborn_females_italiani
-        projections.loc[projections["età"] == 0, f"maschi_stranieri_{next_year}"] = newborn_males_stranieri
-        projections.loc[projections["età"] == 0, f"femmine_stranieri_{next_year}"] = newborn_females_stranieri
-
-        births_per_year[year] = births_italiani + births_stranieri
-
-        for col in [f"maschi_italiani_{next_year}", f"femmine_italiani_{next_year}",
-                    f"maschi_stranieri_{next_year}", f"femmine_stranieri_{next_year}"]:
-            projections[col] = projections[col].round().astype(int)
-
-    births_df = pd.DataFrame(list(births_per_year.items()), columns=["year", "total_births"])
-
-    return projections, births_df
+    return projections_baseline, projections_boosted
 
 # --- Helper Functions ---
 def total_population(projections):
