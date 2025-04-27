@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-def simulate_population_fixed_corrected(
+def simulate_population_fixed(
     base_df,
     immigration_boost=0,
     boost_start_year=None,
