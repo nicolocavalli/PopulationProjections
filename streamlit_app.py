@@ -75,7 +75,7 @@ def simulate_population_fixed(
                     projections.loc[projections["età"] == age, f"maschi_stranieri_{year}"] += male_children_per_age
                     projections.loc[projections["età"] == age, f"femmine_stranieri_{year}"] += female_children_per_age
 
-        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
+        for group in ["maschi_italiani", "femmine_italiani"]:
             s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
             projections[f"{group}_{year}"] *= projections[s_col]
         
