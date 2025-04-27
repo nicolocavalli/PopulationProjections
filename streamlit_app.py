@@ -32,7 +32,6 @@ def simulate_population_fixed(
         for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
             s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
             projections[f"{group}_{year}"] *= projections[s_col]
-            projections[f"{group}_{year}"] = projections[f"{group}_{year}"].round().astype(int)
             
         total_italiani = (projections[f"maschi_italiani_{year}"] + projections[f"femmine_italiani_{year}"]).sum()
         total_stranieri = (projections[f"maschi_stranieri_{year}"] + projections[f"femmine_stranieri_{year}"]).sum()
@@ -189,6 +188,7 @@ oadr_boosted = old_age_dependency(projections_boosted)
 # --- Plot 1: Total Population ---
 st.subheader("Total Population Over Time")
 fig1, ax1 = plt.subplots(figsize=(10, 6))
+ax1.plot(years, pop_total_baseline, label="no_migration", linestyle="--", color="grey")
 ax1.plot(years, pop_total_baseline, label="Baseline", linestyle="--", color="black")
 ax1.plot(years, pop_total_boosted, label="Boosted", color="blue", linewidth=2)
 ax1.axvspan(boost_start_year, boost_end_year, color="blue", alpha=0.1, label="Boost Period")
