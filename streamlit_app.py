@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # --- Load Base Data ---
 @st.cache_data
 def load_base_data():
-return pd.read_csv("base_file_new.csv")
+  return pd.read_csv("base_file_new.csv")
 
 base_df = load_base_data()
 
