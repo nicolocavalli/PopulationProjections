@@ -176,11 +176,24 @@ projections_boosted, births_boosted = simulate_population_fixed(
     bring_children=bring_children
 )
 
+# No Migration Scenario (with outmigration but no immigration)
+projections_no_migration, births_no_migration = simulate_population_fixed(
+    base_df,
+    migration_scenario="no_migration",
+    immigration_boost=0,
+    boost_start_year=boost_start_year,
+    boost_end_year=boost_end_year,
+    boost_min_age=boost_min_age,
+    boost_max_age=boost_max_age,
+    bring_children=False
+)
+
 # --- Helper Calculations ---
 years = list(range(2023, 2076))
 
 pop_total_baseline = total_population(projections_baseline)
 pop_total_boosted = total_population(projections_boosted)
+pop_total_no_migration = total_population(projections_no_migration)
 
 oadr_baseline = old_age_dependency(projections_baseline)
 oadr_boosted = old_age_dependency(projections_boosted)
@@ -188,7 +201,7 @@ oadr_boosted = old_age_dependency(projections_boosted)
 # --- Plot 1: Total Population ---
 st.subheader("Total Population Over Time")
 fig1, ax1 = plt.subplots(figsize=(10, 6))
-ax1.plot(years, pop_total_baseline, label="no_migration", linestyle="--", color="grey")
+ax1.plot(years, pop_total_no_migration, label="No Immigration", linestyle="--", color="grey", alpha=0.7)  
 ax1.plot(years, pop_total_baseline, label="Baseline", linestyle="--", color="black")
 ax1.plot(years, pop_total_boosted, label="Boosted", color="blue", linewidth=2)
 ax1.axvspan(boost_start_year, boost_end_year, color="blue", alpha=0.1, label="Boost Period")
