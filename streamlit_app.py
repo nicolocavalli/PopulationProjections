@@ -28,10 +28,11 @@ def simulate_population_fixed(
 
     for year in years[:-1]:
         next_year = year + 1
-        
+
         for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
             s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
             projections[f"{group}_{year}"] *= projections[s_col]
+            projections[f"{group}_{year}"] = projections[f"{group}_{year}"].round().astype(int)
             
         total_italiani = (projections[f"maschi_italiani_{year}"] + projections[f"femmine_italiani_{year}"]).sum()
         total_stranieri = (projections[f"maschi_stranieri_{year}"] + projections[f"femmine_stranieri_{year}"]).sum()
