@@ -52,6 +52,10 @@ def simulate_population_fixed(
         projections[f"maschi_stranieri_{year}"] += total_immigration * projections["w_maschi_stranieri"]
         projections[f"femmine_stranieri_{year}"] += total_immigration * projections["w_femmine_stranieri"]
 
+        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
+            s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
+            projections[f"{group}_{year}"] *= projections[s_col]
+        
         if migration_scenario == "boosted" and immigration_boost > 0:
             if boost_start_year and boost_end_year:
                 if boost_start_year <= year <= boost_end_year:
@@ -73,10 +77,6 @@ def simulate_population_fixed(
                 for age in range(0, 18):
                     projections.loc[projections["età"] == age, f"maschi_stranieri_{year}"] += male_children_per_age
                     projections.loc[projections["età"] == age, f"femmine_stranieri_{year}"] += female_children_per_age
-
-        for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
-            s_col = "survival_maschi" if "maschi" in group else "survival_femmine"
-            projections[f"{group}_{year}"] *= projections[s_col]
 
         for group in ["maschi_italiani", "femmine_italiani", "maschi_stranieri", "femmine_stranieri"]:
             projections.loc[projections.index[1:], f"{group}_{next_year}"] = projections.loc[projections.index[:-1], f"{group}_{year}"].values
