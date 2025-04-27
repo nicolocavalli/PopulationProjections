@@ -108,30 +108,30 @@ pop_boost = total_foreign_population(boost_projection)
 pop_boosted = [b + p for b, p in zip(pop_baseline, pop_boost)]
 
 # --- Plot: Total Births Over Time ---
-st.subheader("Total Births Per Year: Baseline vs Boosted Scenario")
+#st.subheader("Total Births Per Year: Baseline vs Boosted Scenario")
 
-birth_years = list(range(2025, 2075))
-births_baseline = [
-    boost_df[f"births_italiani_{y}"].sum() + boost_df[f"births_stranieri_{y}"].sum()
-    for y in birth_years
-]
-births_boosted = [
-    boost_df[f"births_italiani_{y}"].sum() + 
-    boost_df[f"births_stranieri_{y}"].sum() + 
-    boost_projection.get(f"births_boost_{y}", pd.Series([0])).sum()
-    for y in birth_years
-]
+#birth_years = list(range(2025, 2075))
+#births_baseline = [
+ #   boost_df[f"births_italiani_{y}"].sum() + boost_df[f"births_stranieri_{y}"].sum()
+  #  for y in birth_years
+#]
+#births_boosted = [
+#    boost_df[f"births_italiani_{y}"].sum() + 
+ #   boost_df[f"births_stranieri_{y}"].sum() + 
+  #  boost_projection.get(f"births_boost_{y}", pd.Series([0])).sum()
+   # for y in birth_years
+#]
 
-fig3, ax3 = plt.subplots(figsize=(10, 5))
-ax3.plot(birth_years, births_baseline, label="Baseline", linestyle="--", color="black")
-ax3.plot(birth_years, births_boosted, label="With Immigration Boost", color="blue", linewidth=2)
-ax3.axvspan(boost_start, boost_end, color="blue", alpha=0.1, label="Boost Period")
-ax3.set_xlabel("Year")
-ax3.set_ylabel("Total Births")
-ax3.set_title("Total Annual Births: Baseline vs Boosted Scenario")
-ax3.legend()
-ax3.grid(True)
-st.pyplot(fig3)
+f#ig3, ax3 = plt.subplots(figsize=(10, 5))
+#ax3.plot(birth_years, births_baseline, label="Baseline", linestyle="--", color="black")
+#ax3.plot(birth_years, births_boosted, label="With Immigration Boost", color="blue", linewidth=2)
+#ax3.axvspan(boost_start, boost_end, color="blue", alpha=0.1, label="Boost Period")
+#ax3.set_xlabel("Year")
+#ax3.set_ylabel("Total Births")
+#ax3.set_title("Total Annual Births: Baseline vs Boosted Scenario")
+#ax3.legend()
+#ax3.grid(True)
+#st.pyplot(fig3)
 
 # --- Plot: Total Population Over Time ---
 st.subheader("Total Population Over Time")
@@ -147,30 +147,3 @@ ax.legend()
 ax.grid(True)
 st.pyplot(fig)
 
-# --- Plot: Population Pyramid in Final Year ---
-st.subheader(f"Population Pyramid: {years[-1]} (Baseline vs Boosted Total)")
-
-final_year = years[-1]
-età = boost_df["età"]
-
-baseline_m = boost_df[f"maschi_italiani_{final_year}"] + boost_df[f"maschi_stranieri_{final_year}"]
-baseline_f = boost_df[f"femmine_italiani_{final_year}"] + boost_df[f"femmine_stranieri_{final_year}"]
-
-boost_m = boost_projection[f"maschi_stranieri_boost_{final_year}"]
-boost_f = boost_projection[f"femmine_stranieri_boost_{final_year}"]
-
-total_boosted_m = baseline_m + boost_m
-total_boosted_f = baseline_f + boost_f
-
-fig2, ax2 = plt.subplots(figsize=(8, 6))
-ax2.barh(età, -baseline_m, color="lightgray", label="Baseline M")
-ax2.barh(età, baseline_f, color="gray", label="Baseline F")
-ax2.barh(età, -total_boosted_m, color="blue", alpha=0.4, label="Boosted M")
-ax2.barh(età, total_boosted_f, color="red", alpha=0.4, label="Boosted F")
-
-ax2.set_xlabel("Population")
-ax2.set_ylabel("Age")
-ax2.set_title(f"Population Pyramid in {final_year}: Baseline vs Boosted")
-ax2.legend(loc="lower right")
-ax2.grid(True)
-st.pyplot(fig2)
